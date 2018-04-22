@@ -1,0 +1,80 @@
+---
+title: "EDA"
+output: 
+  html_notebook: 
+    highlight: haddock
+    theme: lumen
+---
+
+# Parking Lot
+
+* make just one dataframe with all information
+* make a few summary frames - by week / by month / by qtr
+* for top items, per item ts
+* for top category, per category ts
+* for top shop, per shop ts
+* what trends exist?
+* review papers which explore this problem
+** summarize papers
+
+
+
+# EDA
+
+# Raw data
+
+```{r}
+df
+```
+
+
+```{r}
+df %>% group_by(shop_id, item_id) %>% summarise(totals = sum(item_cnt_day)) %>% top_n(wt = totals, n = 100) %>% ggplot(aes(x=shop_id,y=item_id))+geom_tile(aes(z=totals))
+```
+
+```{r}
+df %>% tabyl(item_id) %>% arrange(-percent)
+```
+
+
+```{r}
+df %>% count(item_id) %>% arrange(-n) %>% head(20) %>% ggplot(aes(x=item_id,y=n))+geom_bar(stat = 'identity')+coord_flip()
+```
+
+
+# Group By Monthly
+
+```{r}
+df %>%
+  group_by(year, month) %>%
+  summarise(total_items_sold = sum(item_cnt_day)) -> ts_ym
+
+ts_ym <- ts(ts_ym[3], start = c(2013,1), frequency = 12)
+
+plot(ts_ym)
+seasonplot(ts_ym,year.labels.left = T)
+monthplot(ts_ym)
+ggtsdisplay(ts_ym)
+```
+
+# What's in the meta data tables?
+
+```{r}
+item.categories
+```
+
+```{r}
+items
+
+histogram(~item_category_id, items)
+```
+
+```{r}
+shops
+```
+
+
+
+# Hypotheses
+
+
