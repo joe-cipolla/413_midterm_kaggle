@@ -1,20 +1,30 @@
-df_master %>%
+df_train %>%
   group_by(shop_id) %>%
   summarise(total_sales=sum(item_cnt_day)) %>%
   arrange(-total_sales) %>%
-  head(10) %>%
+  head(15) %>%
   pull(shop_id) -> top_shops
-shops %>% filter(shop_id %in% top_shops)
-plot_topshop_ts(df_master, top_shops)
+# shops %>% filter(shop_id %in% top_shops)
+plot_topshop_ts(df_train, top_shops)
 
-df_master %>%
-  group_by(item_id) %>%
+df_train %>%
+  group_by(itemcat_lvl1) %>%
   summarise(total_sales=sum(item_cnt_day)) %>%
   arrange(-total_sales) %>%
   head(10) %>%
-  pull(item_id) -> top_items
-items %>% filter(item_id %in% top_items)
-plot_topitem_ts(df_master, top_items)
+  pull(itemcat_lvl1) -> top_items_categories
+# items %>% filter(item_id %in% top_items)
+plot_topitemcategories_ts(df_train, top_items_categories)
+
+df_train %>%
+  group_by(loc_lvl1) %>%
+  summarise(total_sales=sum(item_cnt_day)) %>%
+  arrange(-total_sales) %>%
+  head(10) %>%
+  pull(loc_lvl1) -> top_loc_lvl1
+# items %>% filter(item_id %in% top_items)
+plot_top_loc_lvl1_ts(df_train, top_loc_lvl1)
+
 
 random_items <- sample(df_master$item_id, 20)
 df_master %>%
@@ -26,12 +36,3 @@ df_master %>%
   geom_point(aes(color=item_id))+
   theme_bw()+
   labs(title = '50 random items')
-
-df_master %>%
-  group_by(itemcat_lvl1) %>%
-  summarise(total_sales=sum(item_cnt_day)) %>%
-  arrange(-total_sales) %>%
-  head(10) %>%
-  pull(itemcat_lvl1) -> top_itemcats
-item.categories %>% filter(itemcat_lvl1 %in% top_itemcats)
-plot_top_itemcats_ts(df_master, top_itemcats)

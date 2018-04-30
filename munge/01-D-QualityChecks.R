@@ -39,7 +39,8 @@ df_master <- df_master %>%
       loc_lvl2 == 'Str. Chkalov 39m?' | loc_lvl2 == 'Str. Chkalov 39 m²',
       'Str Chkalov',
       loc_lvl2
-    )
+    ),
+    loc_lvl2 = fct_infreq(loc_lvl2)
   )
 
 # itemcat level 1 cleanup
@@ -53,6 +54,8 @@ df_master <- df_master %>%
       'Payment Cards',
       as.character(itemcat_lvl1)
     ),
-    itemcat_lvl1 = fct_infreq(itemcat_lvl1)
+    itemcat_lvl1 = fct_infreq(itemcat_lvl1),
+    itemcat_lvl2 = fct_infreq(itemcat_lvl2)
   )
+
 cache('df_master')
