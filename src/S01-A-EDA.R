@@ -36,3 +36,11 @@ df_master %>%
   geom_point(aes(color=item_id))+
   theme_bw()+
   labs(title = '50 random items')
+
+df_train %>%
+  group_by(item_id) %>%
+  summarise(total_sales=sum(item_cnt_day)) %>%
+  arrange(-total_sales) %>%
+  head(15) %>%
+  pull(item_id) -> top_items
+

@@ -13,7 +13,15 @@ df_master <- df_master %>%
     year = year(date),
     month = month(date),
     week = week(date),
-    weekend = isWeekend(date)
+    weekend = isWeekend(date),
+    ym = paste0(year, '-', str_pad(month,width = 2,side = 'left',pad = '0')),
+    yw = paste0(year, '-', str_pad(week, width = 2,side = 'left',pad = '0'))
+    )
+
+# Is it december?
+df_master <- df_master %>%
+  mutate(
+    is_december = month == 12
   )
 
 ## https://www.timeanddate.com/holidays/russia/2015
