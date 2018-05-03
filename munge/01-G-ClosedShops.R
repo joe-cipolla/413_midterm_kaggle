@@ -27,6 +27,8 @@ for (i in seq_along(shop_names)) {
 # YES!
 closed_shops <- c(0,1,8,11,13,17,23,27,29,30,32,33,40,43,54)
 only_oct_sales <- c(9,20)
+odd_ball <- c(36) #Shop 36 opens Oct-2015 - nothing to forecast. This will have to be
+# specially handled
 
 # Once these shops are rmeoved, does it affect the final number of items we need to consider?
 all_shops <- shop_names
@@ -54,6 +56,6 @@ length(unique(df_master$item_id))
 
 # Removing the closed shops from the master data set
 df_master <- df_master %>%
-  mutate(remove_shops = shop_id %in% c(closed_shops, only_oct_sales)) %>%
+  mutate(remove_shops = shop_id %in% c(closed_shops, only_oct_sales, odd_ball)) %>%
   filter(!remove_shops) %>%
   select(-remove_shops)
