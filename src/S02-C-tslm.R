@@ -48,3 +48,30 @@ for(i in seq_along(unique_shops)){
   }
   tslm_out[[i]] <- tslm_yhats
 }
+
+
+
+
+
+
+tslm_tr_nested <- tslm_tr %>%
+  nest(-shop_id)
+tslm_tr_nested
+
+i = 1
+
+df_selected <- tslm_tr_nested$data[[i]]
+tslm_tr_casted <- dcast(formula = ym~item_id,data = df_selected,fun.aggregate = sum, value.var = 'total_sales', fill = 0) %>% tbl_df()
+
+smaller_cast <- tslm_tr_casted[,1:5]
+
+get_tslm_forecasts <- function(x){
+  ts_to_fit <- ts(x, start=c(2013,01), frequency=12)
+  fit <- tslm(ts_to_fit ~ trend + season, lambda = 'auto')
+  fc <- forecast(fit, h=h)
+  fc$mean
+  # tslm_yhats[, j] <- as.numeric(fc$mean)
+  # tslm_yhats[, j] <- ifelse(tslm_yhats[, j]<0, 0, tslm_yhats[, j])
+}
+
+map_df(tslm_tr_casted[,-1], ~get_tslm_forecasts(.x))
