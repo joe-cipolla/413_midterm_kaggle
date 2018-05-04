@@ -92,3 +92,41 @@ tslm_result_weeklylyforecast <- purrr::reduce(.x = tslm_out, .f = bind_rows)
 tslm_result_weeklylyforecast
 
 cache('tslm_result_weeklylyforecast')
+
+
+
+# Prep kaggle output ------------------------------------------------------
+
+tslm_result_monthlyforecast <- tslm_result_monthlyforecast %>%
+  mutate(
+    item_id = as.numeric(str_extract(item_id, '[0-9].*')),
+    shop_id = as.numeric(str_extract(shop_id, '[0-9].*'))
+  )
+
+tslm_monthly_testout <- kaggle_test %>%
+  left_join(tslm_result_monthlyforecast) %>%
+  mutate(forecast = ifelse(is.na(forecast),0,forecast))
+
+tslm_monthly_testout %>%
+  select(ID, forecast) %>%
+  rename(id=ID, item_cnt_month=forecast) %>%
+  write_csv(path = 'logs/tslm_monthly_NAtozero.csv',col_names = T)
+# table(tslm_monthly_testout$forecast,useNA = 'always')
+
+# - - - - - - - - - - - - - - - - -
+tslm_result_weeklyforecast <- tslm_result_weeklylyforecast %>%
+  mutate(
+    item_id = as.numeric(str_extract(item_id, '[0-9].*')),
+    shop_id = as.numeric(str_extract(shop_id, '[0-9].*')),
+    item_cnt_month = h1+h2+h3+h4)
+
+tslm_weekly_testout <- kaggle_test %>%
+  left_join(tslm_result_weeklyforecast) %>%
+  select(-h1, -h2,-h3,-h4) %>%
+  rename(id=ID) %>%
+  mutate(item_cnt_month = ifelse(is.na(item_cnt_month),0,item_cnt_month))
+
+tslm_weekly_testout %>%
+  select(id, item_cnt_month) %>%
+  write_csv(path = 'logs/tslm_weekly_NAtozero.csv',col_names = T)
+
