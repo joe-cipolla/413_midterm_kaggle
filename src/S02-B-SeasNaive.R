@@ -59,3 +59,27 @@ calc_rmse(snaive_test)
 # [1] 10.87307
 
 #-------------------------------------
+
+# KAGGLE submission
+
+df_master %>%
+  filter(month==11, year==2014) %>%
+  select(shop_id,item_id,item_cnt_day) %>%
+  group_by(shop_id, item_id) %>%
+  summarise(item_cnt_month=sum(item_cnt_day)) %>%
+  ungroup() -> snaive_forecast
+
+snaive_forecast <- snaive_forecast %>%
+  mutate(
+    item_id = as.numeric(str_extract(item_id, '[0-9].*')),
+    shop_id = as.numeric(str_extract(shop_id, '[0-9].*'))
+  )
+
+snaive_out <- kaggle_test %>%
+  left_join(snaive_forecast) %>%
+  mutate(item_cnt_month = ifelse(is.na(item_cnt_month),0,item_cnt_month))
+
+snaive_out %>%
+  select(ID, item_cnt_month) %>%
+  rename(id=ID) %>%
+  write_csv(path = 'logs/snaive_NAtozero.csv',col_names = T)
