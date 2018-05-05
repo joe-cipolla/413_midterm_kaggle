@@ -138,7 +138,7 @@ for(i in seq_along(unique_shops)) {
     filter(wk %in% as.character(45:48)) %>% select(-wk) %>% as.matrix()
   fc <- fit %>% forecast(h = h, xreg = xr)
   autoplot(fc)
-  tslm_yhats[[i]] <- round(as.numeric(fc$mean), digits = 0)
+  tslm_yhats[[i]] <- as.numeric(fc$mean)
   tslm_yhats[[i]] <- ifelse(tslm_yhats[[i]] < 0, 0, tslm_yhats[[i]])
 }
 
@@ -146,14 +146,16 @@ c3_autoarima_out <- purrr::reduce(.x = tslm_yhats, .f = rbind)
 row.names(c3_autoarima_out) <- unique_shops
 c3_autoarima_out
 
+c3_autoarima_out <- rbind(c3_autoarima_out,S36=rep(c3_tr %>% filter(shop_id=='S36') %>% summarize(mean(total_sales)) %>% pull(),4))
+
 cache('c3_autoarima_out')
 
 df <- tbl_df(c3_autoarima_out)
 colnames(df) <- paste0('h', 1:4)
-df$shop_id <- as.numeric(str_extract(unique_shops,'[0-9].*'))
+df$shop_id <- as.numeric(str_extract(c3_tr$shop_id %>% unique(),'[0-9].*'))
 df <- df %>% transmute(shop_id, total_nov_sales=h1+h2+h3+h4)
 
-item_pc_sales_per_shop_in_october <- df_master %>%
+item_pc_sales_per_shop_over_6_months <- df_master %>%
   filter(month %in% c(5,6,7,8,9,10), year==2015) %>%
   select(shop_id, item_id, item_cnt_day) %>%
   group_by(shop_id, item_id) %>%
@@ -166,9 +168,9 @@ item_pc_sales_per_shop_in_october <- df_master %>%
          shop_id = as.numeric(str_extract(shop_id,'[0-9].*')),
          item_id = as.numeric(str_extract(item_id,'[0-9].*')))
 
-estimated_nov_sales <- item_pc_sales_per_shop_in_october %>%
+estimated_nov_sales <- item_pc_sales_per_shop_over_6_months %>%
   left_join(df) %>%
-  mutate(estimated_sales_in_nov = round(item_sales_as_pc_of_total * total_nov_sales))
+  mutate(estimated_sales_in_nov = item_sales_as_pc_of_total * total_nov_sales)
 
 c3_weekly_testout <- kaggle_test %>%
   left_join(estimated_nov_sales) %>%
@@ -208,15 +210,15 @@ table(unfound_item_id %in% as.numeric(str_extract(df_master$item_id,'[0-9].*')))
 # Perhaps I can use the item_category_id, or just set them to zero.
 # I'm setting them to zero :)
 c3_weekly_testout$item_cnt_month[is.na(c3_weekly_testout$item_cnt_month)] <- 0
-c3_weekly_testout
+c3_weekly_testout$item_cnt_month[c3_weekly_testout$item_cnt_month>20] <- 20
 
 c3_weekly_testout %>%
   select(id, item_cnt_month) %>%
   write_csv(path = 'logs/c3_weekly_testout.csv',col_names = T)
 cache('c3_weekly_testout')
 
-#Kaggle score 3.77304
-
+# Without S36 put back in, and without clipping to 20, and with round(): Kaggle score 3.77304
+# With S36, with clipping and without round() :
 
 # Monthly forecast using auto-arima ----------------------------------------
 
@@ -348,4 +350,4 @@ c3_monthly_testout %>%
   write_csv(path = 'logs/c3_monthly_testout.csv',col_names = T)
 cache('c3_monthly_testout')
 
-#Kaggle score ?
+#Kaggle score 4.03934
