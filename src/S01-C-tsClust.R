@@ -4,7 +4,7 @@ df_train %>%
   group_by(loc_lvl1, date_block_num) %>%
   tally(wt = item_cnt_day) %>%
   dcast(date_block_num~loc_lvl1) %>%
-  fill(Khimki) %>% select(-date_block_num) %>%
+  fill(Yakutsk, .direction = 'up') %>% select(-date_block_num) %>%
   as.matrix() %>% t()-> loc_matrix
 
 diss(loc_matrix, 'COR') %>% hclust() %>% plot()
@@ -20,8 +20,8 @@ df_train %>%
   dcast(date_block_num~itemcat_lvl1) %>% select(-date_block_num) %>%
   as.matrix() %>% t()-> itemcat_matrix
 
-diss(itemcat_matrix, 'COR') %>% hclust() %>% plot()
-diss(itemcat_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'centroid', order = 'hclust')
+diss(itemcat_matrix, 'COR') %>% hclust() %>% plot(cex=2)
+diss(itemcat_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'centroid', order = 'hclust', tl.cex = 1.5)
 zoo::plot.zoo(t(itemcat_matrix),main = 'Item Cat Level 1')
 
 

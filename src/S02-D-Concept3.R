@@ -147,8 +147,70 @@ c3_autoarima_out <- purrr::reduce(.x = tslm_yhats, .f = rbind)
 row.names(c3_autoarima_out) <- unique_shops
 c3_autoarima_out
 
+cache('c3_autoarima_out')
+
 df <- tbl_df(c3_autoarima_out)
 colnames(df) <- paste0('h', 1:4)
-df$shop_id <- unique_shops
+df$shop_id <- as.numeric(str_extract(unique_shops,'[0-9].*'))
+df <- df %>% transmute(shop_id, total_nov_sales=h1+h2+h3+h4)
 
-cache('c3_autoarima_out')
+item_pc_sales_per_shop_in_october <- df_master %>%
+  filter(month %in% c(5,6,7,8,9,10), year==2015) %>%
+  select(shop_id, item_id, item_cnt_day) %>%
+  group_by(shop_id, item_id) %>%
+  summarize(total_itemsales_per_shop = sum(item_cnt_day)) %>%
+  ungroup() %>%
+  group_by(shop_id) %>%
+  mutate(total_sales_per_shop = sum(total_itemsales_per_shop)) %>%
+  ungroup() %>%
+  mutate(item_sales_as_pc_of_total = total_itemsales_per_shop/total_sales_per_shop,
+         shop_id = as.numeric(str_extract(shop_id,'[0-9].*')),
+         item_id = as.numeric(str_extract(item_id,'[0-9].*')))
+
+estimated_nov_sales <- item_pc_sales_per_shop_in_october %>%
+  left_join(df) %>%
+  mutate(estimated_sales_in_nov = round(item_sales_as_pc_of_total * total_nov_sales))
+
+c3_weekly_testout <- kaggle_test %>%
+  left_join(estimated_nov_sales) %>%
+  select(id=ID, shop_id, item_id, item_cnt_month = estimated_sales_in_nov)
+c3_weekly_testout
+
+# For those shops which are still NA, let's try assigning an average sales value per month per shop
+# calculated not at a shop_id+item_id level, but just at an item_id level
+# Removing the month of Dec since it'll inflate the values
+
+average_item_sales_per_month <- df_master %>% filter(month != 12) %>% group_by(item_id, month) %>%
+  summarize(total_item_sales_by_month = sum(item_cnt_day, na.rm = T)) %>%
+  group_by(item_id) %>%
+  summarise(no_of_months = n(),
+            total_item_sales = sum(total_item_sales_by_month)) %>%
+  transmute(item_id = as.numeric(str_extract(item_id,'[0-9].*')),
+            average_item_sales_per_month = total_item_sales / no_of_months,
+            average_item_sales_per_month_per_shop = average_item_sales_per_month / length(unique(df_master$shop_id))) %>%
+  select(-average_item_sales_per_month)
+
+c3_weekly_testout <- c3_weekly_testout %>%
+  left_join(average_item_sales_per_month) %>%
+  mutate(item_cnt_month=ifelse(is.na(item_cnt_month), average_item_sales_per_month_per_shop, item_cnt_month)) %>%
+  select(-average_item_sales_per_month_per_shop)
+c3_weekly_testout
+
+map_int(c3_weekly_testout, ~sum(is.na(.x)))
+
+# What are the remaining NA items?
+unfound_item_id <- c3_weekly_testout %>% filter(is.na(item_cnt_month)) %>% distinct(item_id) %>% pull(item_id)
+length(unfound_item_id)
+# Do they even exist in df_master?
+table(unfound_item_id %in% as.numeric(str_extract(df_master$item_id,'[0-9].*')))
+
+# Only 7 are found in the master! (Probably in the month of December)
+# How should I tackle these 'seen-for-the-first-time' item_ids?
+# Perhaps I can use the item_category_id, or just set them to zero.
+# I'm setting them to zero :)
+c3_weekly_testout$item_cnt_month[is.na(c3_weekly_testout$item_cnt_month)] <- 0
+c3_weekly_testout
+
+c3_weekly_testout %>%
+  select(id, item_cnt_month) %>%
+  write_csv(path = 'logs/c3_weekly_testout.csv',col_names = T)
