@@ -1,68 +1,104 @@
-# Location Level 1
-df_train %>%
-  filter(loc_lvl1 %in% top_loc_lvl1) %>%
-  group_by(loc_lvl1, date_block_num) %>%
+
+# How can we cluster shops? ---------------------------------------------------------
+
+# shop_id , aggregated by week_block_num
+df_master %>%
+  group_by(shop_id, week_block_num) %>%
   tally(wt = item_cnt_day) %>%
-  dcast(date_block_num~loc_lvl1) %>%
-  fill(Yakutsk, .direction = 'up') %>% select(-date_block_num) %>%
-  as.matrix() %>% t()-> loc_matrix
+  dcast(week_block_num~shop_id) %>% select(-week_block_num) %>%
+  as.matrix() %>% t() %>% replace_na(replace = 0)-> shop_id_matrix
 
-diss(loc_matrix, 'COR') %>% hclust() %>% plot()
-diss(loc_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'ward.D2', order = 'hclust', addrect = 2)
-zoo::plot.zoo(t(loc_matrix),main = 'Location Level 1')
+diss(shop_id_matrix, 'COR') %>% hclust(method = 'compl') -> hclust_out
+new_order <- hclust_out$order
+diss(shop_id_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'compl', order = 'FPC')
+plot(hclust_out, main = 'Shop ID Clusters for Weekly Aggregated Time Series')
+rect.hclust(hclust_out, k=5)
 
+# here are the 5 clusters of time series
+x <- rect.hclust(hclust_out, k=5)
+names(x) <- paste0('shop_cluster_',1:5)
+shop_clusters <- map2_df(x,names(x),.f = ~tibble(shop_cluster_id=.y,shop_id=names(.x)))
+shop_clusters
+
+zoo::plot.zoo(t(shop_id_matrix)[,new_order],main = 'Shop ID', col=as.numeric(as.factor(shop_clusters$shop_cluster_id)))
+
+
+# How can we cluster Location Level 1 -----------------------------------------------
+
+# Location Level 1
+df_master %>%
+  # filter(loc_lvl1 %in% top_loc_lvl1) %>%
+  group_by(loc_lvl1, week_block_num) %>%
+  tally(wt = item_cnt_day) %>%
+  dcast(week_block_num~loc_lvl1) %>%
+  fill(Yakutsk, .direction = 'up') %>% select(-week_block_num) %>%
+  as.matrix() %>% t() %>% replace_na(replace = 0)-> loc_matrix
+
+diss(loc_matrix, 'COR') %>% hclust() -> hclust_out
+new_order <- hclust_out$order
+diss(loc_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'compl', order = 'FPC')
+hclust_out %>% plot(main = 'Location Level 1')
+k=4
+rect.hclust(hclust_out, k=k)
+
+# here are the 4 clusters of time series
+x <- rect.hclust(hclust_out, k=k)
+names(x) <- paste0('loclvl1_cluster_',1:k)
+loclvl1_clusters <- map2_df(x,names(x),.f = ~tibble(loclvl1_cluster_id=.y,loc_lvl1=names(.x)))
+loclvl1_clusters
+
+zoo::plot.zoo(t(loc_matrix)[,new_order], main = 'Location Level 1', col=as.numeric(as.factor(loclvl1_clusters$loclvl1_cluster_id)))
+
+
+# How can we cluster item categories at level 1 -------------------------------------
 
 # itemcat_lvl1
-df_train %>%
-  filter(itemcat_lvl1 %in% top_items_categories) %>%
-  group_by(itemcat_lvl1, date_block_num) %>%
+df_master %>%
+  # filter(itemcat_lvl1 %in% top_items_categories) %>%
+  group_by(itemcat_lvl1, week_block_num) %>%
   tally(wt = item_cnt_day) %>%
-  dcast(date_block_num~itemcat_lvl1) %>% select(-date_block_num) %>%
-  as.matrix() %>% t()-> itemcat_matrix
+  dcast(week_block_num~itemcat_lvl1) %>% select(-week_block_num) %>%
+  as.matrix() %>% t() %>% replace_na(replace = 0) -> itemcat_matrix
 
-diss(itemcat_matrix, 'COR') %>% hclust() %>% plot(cex=2)
-diss(itemcat_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'centroid', order = 'hclust', tl.cex = 1.5)
-zoo::plot.zoo(t(itemcat_matrix),main = 'Item Cat Level 1')
+diss(itemcat_matrix, 'COR') %>% hclust() -> hclust_out
+new_order <- hclust_out$order
+diss(itemcat_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'compl', order = 'FPC', addrect = 2)
+hclust_out %>% plot(main = 'Item category Level 1')
+k=8
+rect.hclust(hclust_out, k=k)
+
+# here are the 8 clusters of time series
+x <- rect.hclust(hclust_out, k=k)
+names(x) <- paste0('itemcatlvl1_cluster_',1:k)
+itemcatlvl1_cluster <- map2_df(x,names(x),.f = ~tibble(itemcatlvl1_cluster_id=.y,loc_lvl1=names(.x)))
+itemcatlvl1_cluster
+
+zoo::plot.zoo(t(itemcat_matrix)[,new_order],main = 'Item Cat Level 1', col=as.numeric(as.factor(itemcatlvl1_cluster$itemcatlvl1_cluster_id)), lwd=2)
 
 
-# shop_id
-df_train %>%
-  filter(shop_id %in% top_shops) %>%
-  group_by(shop_id, week) %>%
-  tally(wt = item_cnt_day) %>%
-  dcast(week~shop_id) %>% select(-week) %>%
-  fill('54') %>% fill(c('57','58'),.direction = 'up') %>% as.matrix() %>% t()-> shop_id_matrix
 
-diss(shop_id_matrix, 'COR') %>% hclust() %>% plot()
-diss(shop_id_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'centroid', order = 'hclust')
-zoo::plot.zoo(t(shop_id_matrix),main = 'Shop ID')
 
+# Are some weeks different than other weeks? ----------------------------------------
 
 # is there something unique about weeks?
-df_train %>%
-  group_by(week, shop_id) %>%
+df_master %>%
+  group_by(week, year) %>%
   tally(wt = item_cnt_day) %>%
-  dcast(week~shop_id) %>%
+  dcast(year~week) %>%
   map_df(~tidyr::replace_na(.x, replace = 0)) %>%
-  select(-week) %>%
-  as.matrix() -> week_matrix
+  select(-year) %>%
+  as.matrix() %>% t() -> week_matrix
 
-diss(week_matrix, 'COR') %>% hclust() %>% plot()
-diss(week_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'centroid', order = 'hclust')
-zoo::plot.zoo(t(week_matrix),main = 'Shop ID')
+diss(week_matrix, 'COR') %>% hclust(method = 'compl')-> hclust_out
+new_order <- hclust_out$order
+diss(week_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'compl', order = 'FPC')
+hclust_out %>% plot(main = 'How would the weeks cluster together?')
+k=6
+rect.hclust(hclust_out, k=k)
 
-
-# Random code to test..
-df_train %>%
-  group_by(itemcat_lvl2, date_block_num) %>%
-  tally(wt = item_cnt_day) %>%
-  dcast(date_block_num~itemcat_lvl2) %>% select(-date_block_num) %>%
-  map_df(~tidyr::replace_na(.x, replace = 0)) %>%
-  as.matrix() %>% t()-> random_matrix
-diss(random_matrix, 'COR') %>% hclust() %>% plot()
-
-
-df_train %>%
-  count(date,shop_id,wt = item_cnt_day) %>%
-  ggplot(aes(x=date,y=n))+
-  geom_line(aes(color=shop_id))
+# here are the 6 clusters of time series
+x <- rect.hclust(hclust_out, k=k)
+names(x) <- paste0('week_cluster',1:k)
+week_cluster <- map2_df(x,names(x),.f = ~tibble(week_cluster_id=.y,week_number=.x))
+week_cluster
+zoo::plot.zoo(t(week_matrix)[,new_order],main = 'Week #', col=as.numeric(as.factor(week_cluster$week_cluster_id)), lwd=2)

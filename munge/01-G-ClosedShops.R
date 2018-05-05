@@ -25,7 +25,7 @@ for (i in seq_along(shop_names)) {
 # Shops Closed ----------------------------------------------------------------------
 # Have any shops closed down?
 # YES!
-closed_shops <- c(0,1,8,11,13,17,23,27,29,30,32,33,40,43,54)
+closed_shops <- c(0,1,8,11,13,17,23,27,29,30,32,33,40,43,51,54)
 only_oct_sales <- c(9,20)
 odd_ball <- c(36) #Shop 36 opens Oct-2015 - nothing to forecast. This will have to be
 # specially handled
@@ -40,6 +40,8 @@ df_master %>%
 length(unique(item_id_after_shops_removed))
 length(unique(df_master$item_id))
 # YES! we get rid of 781 items
+# ** This isn't good. While we don't want to forecast these shops, the items themselves might
+# have information to use in the top-down approach
 
 # There are 82 items in the test dataset which do not show up in the training dataset!
 # > base::setdiff(unique(test_delete$item_id), unique(as.numeric(df_master$item_id)))
@@ -56,6 +58,6 @@ length(unique(df_master$item_id))
 
 # Removing the closed shops from the master data set
 df_master <- df_master %>%
-  mutate(remove_shops = shop_id %in% c(closed_shops, only_oct_sales, odd_ball)) %>%
+  mutate(remove_shops = shop_id %in% c(closed_shops, only_oct_sales)) %>%
   filter(!remove_shops) %>%
   select(-remove_shops)

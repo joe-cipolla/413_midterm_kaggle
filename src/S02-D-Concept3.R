@@ -218,7 +218,7 @@ c3_weekly_testout %>%
 cache('c3_weekly_testout')
 
 # Without S36 put back in, and without clipping to 20, and with round(): Kaggle score 3.77304
-# With S36, with clipping and without round() :
+# With S36, with clipping and without round() :  2.93434 (rank 185)
 
 # Monthly forecast using auto-arima ----------------------------------------
 

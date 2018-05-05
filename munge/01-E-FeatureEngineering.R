@@ -18,6 +18,9 @@ df_master <- df_master %>%
     yw = paste0(year, '-', str_pad(week, width = 2,side = 'left',pad = '0'))
     )
 
+df_master <- df_master %>%
+  mutate(week_block_num = as.numeric(as.factor(yw)))
+
 # Is it december?
 df_master <- df_master %>%
   mutate(
