@@ -106,8 +106,8 @@ df_master %>%
 diss(week_matrix, 'COR') %>% hclust(method = 'compl')-> hclust_out
 new_order <- hclust_out$order
 diss(week_matrix, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'compl', order = 'FPC')
-hclust_out %>% plot(main = 'How would the weeks cluster together?')
 k=6
+hclust_out %>% plot(main = 'How would the weeks cluster together?')
 rect.hclust(hclust_out, k=k)
 
 # here are the 6 clusters of time series
@@ -118,6 +118,35 @@ week_cluster
 zoo::plot.zoo(t(week_matrix)[,new_order],main = 'Week #', col=as.numeric(as.factor(week_cluster$week_cluster_id)), lwd=2)
 
 
+
+# is there something unique about weeks as pertains to a shop id?
+df_master %>%
+  group_by(week, shop_id) %>%
+  tally(wt = item_cnt_day) %>%
+  dcast(shop_id~week) %>%
+  map_df(~tidyr::replace_na(.x, replace = 0)) %>%
+  select(-shop_id) %>%
+  as.matrix() %>% t() -> week_matrix2
+
+diss(week_matrix2, 'COR') %>% hclust(method = 'compl')-> hclust_out
+new_order <- hclust_out$order
+png('graphs/distmat_week.png', width = 800, height = 600)
+diss(week_matrix2, 'COR') %>% as.matrix() %>% corrplot::corrplot(is.corr = F, method = 'color', hclust.method = 'compl', order = 'FPC')
+dev.off()
+k=4
+png('graphs/hclust_week.png', width = 1000, height = 600)
+hclust_out %>% plot(main = 'How would the weeks cluster together?')
+rect.hclust(hclust_out, k=k)
+dev.off()
+
+# here are the 6 clusters of time series
+x <- rect.hclust(hclust_out, k=k)
+names(x) <- paste0('week_cluster',1:k)
+week_cluster <- map2_df(x,names(x),.f = ~tibble(week_cluster_id=.y,week_number=.x))
+week_cluster
+png('graphs/zoo_clust_week.png', width = 800, height = 1200)
+zoo::plot.zoo(t(week_matrix2)[,new_order],main = 'Week #', col=as.numeric(as.factor(week_cluster$week_cluster_id)), lwd=2)
+dev.off()
 
 # Cache variables -------------------------------------------------------------------
 

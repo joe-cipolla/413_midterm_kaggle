@@ -35,3 +35,5 @@ df_master <- df_master %>%
   mutate(
     holiday = date %in% russian_holidays$date
   )
+
+cache('russian_holidays')

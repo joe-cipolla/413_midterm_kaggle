@@ -71,3 +71,22 @@ df_master %>%
             monthly_item_sales = sum(item_cnt_day)) %$%
   xyplot(monthly_item_price~monthly_item_sales, groups = item_id, auto.key = F, type=c('p','smooth'))
   # xyplot(monthly_item_price+monthly_item_sales~ym, type='p')
+
+
+
+# Alluvial plots --------------------------------------------------------------------
+
+library(alluvial)
+df_master %>%
+  group_by(shop_id, itemcat_lvl1) %>%
+  summarise(total_sales=sum(item_cnt_day)) %>%
+  ungroup() -> for_alluvial
+histogram(~total_sales|itemcat_lvl1, for_alluvial,nint=30)
+alluvial(for_alluvial[,-3], freq = for_alluvial$total_sales, cex=0.8, col=as.numeric(as.factor(for_alluvial$itemcat_lvl1)),hide = for_alluvial$total_sales<1000, alpha=0.5)
+df_master %>%
+  filter(itemcat_lvl1 %in% c('Delivery of goods','MAC Games','Tickets (figure)',
+                             'Official','PC','Android Games')) %>%
+  group_by(shop_id, itemcat_lvl1) %>%
+  summarise(total_sales=sum(item_cnt_day)) %>%
+  ungroup() -> for_alluvial
+alluvial(for_alluvial[,c(2,1)], freq = for_alluvial$total_sales, col=as.numeric(as.factor(for_alluvial$itemcat_lvl1)),alpha=0.8)

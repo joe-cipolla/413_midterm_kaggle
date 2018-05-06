@@ -8,7 +8,7 @@ munging: FALSE
 logging: FALSE
 logging_level: INFO
 load_libraries: TRUE
-libraries: reshape2, plyr, tidyverse, stringr, lubridate, lattice, forecast, lubridate, sweep, janitor, forcats, TSclust, caret, xgboost, timeDate, Rtsne, magrittr, zoo, plotly, doParallel, foreach
+libraries: reshape2, plyr, tidyverse, stringr, lubridate, lattice, forecast, lubridate, sweep, janitor, forcats, TSclust, caret, xgboost, timeDate, Rtsne, magrittr, zoo, plotly, doParallel, foreach, prophet
 as_factors: TRUE
 data_tables: FALSE
 attach_internal_libraries: FALSE
