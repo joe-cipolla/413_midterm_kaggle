@@ -354,3 +354,5 @@ c4_testout %>%
   select(id = ID, item_cnt_month) %>%
   write_csv(path = 'logs/c4_testout.csv',col_names = T)
 cache('c4_testout')
+
+# Kaggle score - 1.38283
