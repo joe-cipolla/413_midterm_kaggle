@@ -1,4 +1,4 @@
-# Weekly forecast using auto-arima ----------------------------------------
+# Weekly forecast using tbats ----------------------------------------
 
 c5_tr <-
   df_master %>% select(date, yw, shop_id, item_cnt_day, is_december) %>%
