@@ -208,7 +208,7 @@ fc_shop <- tibble(shop_id = shop_list, fc_shop_prophet)
 
 # Step II - Shop ID + Item Category lvel Forecast using Prophet
 
-cl<-makeCluster(4)
+cl<-makeCluster(30)
 registerDoParallel(cl)
 
 shop_list <- unique(c4_df_master$shop_id)
@@ -223,13 +223,134 @@ prophet_execute_shop_itemcat <- function(shop_id_filter, ...) {
   itemcat_list <- unique(shoplevel_ts$itemcat_lvl1)
   itemlevel_results <- tibble(itemcat_list)
   itemlevel_results$fc <- 0
-  for (i in seq_along(itemcat_list)) {
-    shoplevel_ts %>% filter(itemcat_lvl1 == itemcat_list[i]) %>%
+  period <- 31
+  result <- foreach(i=seq_along(itemcat_list), .packages = c('forecast','prophet','dplyr','ggplot2','lubridate'), .combine = 'rbind', .verbose=T) %dopar% {
+  # for (i in seq_along(itemcat_list))
+  holidays <- readr::read_csv('data/russian_holidays.csv',
+                              col_names = c('date','holiday_name','holiday_type'),
+                              skip = 1) %>% mutate(date = mdy(date)) %>%
+    select(ds=date,holiday=holiday_name)
+    shoplevel_ts %>%
+      filter(itemcat_lvl1 == itemcat_list[i]) %>%
       transmute(ds = date, y) -> daily_ts
-    daily_yhats <- get_prophet_yhats(daily_ts,
-                                     paste0(shop_id_filter, itemcat_list[i]))
-    itemlevel_results$fc[i] <- sum(daily_yhats)
+    if(nrow(daily_ts)>3){
+      ts_name <- paste0(shop_id_filter, itemcat_list[i])
+      m <- prophet(daily_ts, holidays = holidays)
+      future <- make_future_dataframe(m, periods = period)
+      forecast <- predict(m, future)
+      plot(m, forecast) -> p
+      if(T)
+        ggsave(paste0('graphs/prophet/', ts_name, '.png'), p, width = 10, height = 6, units = 'in')
+      else
+        print(p)
+      daily_yhats <- forecast %>% filter(ds > ymd('2015-10-31') & ds < ymd('2015-12-01')) %>% pull(yhat)
+      # daily_yhats <- get_prophet_yhats(daily_ts,
+      # paste0(shop_id_filter, itemcat_list[i]))
+      # itemlevel_results$fc[i] <- sum(daily_yhats)
+      # itemlevel_results
+      tibble(itemcat = itemcat_list[i], fc = sum(daily_yhats))
+    }
   }
-  itemlevel_results
+  result$shop_id <- shop_id_filter
+  result
 }
-fc_shop_prophet <- map(t(shop_list),~prophet_execute_shop_itemcat(.x, save_plots=T))
+fc_shop_prophet <- list()
+for (k in seq_along(shop_list)) {
+  fc_shop_prophet[[k]] <- prophet_execute_shop_itemcat(shop_list[k], save_plots=T)
+}
+
+cache('fc_shop_prophet')
+
+fc_shop_prophet <- reduce(fc_shop_prophet,bind_rows)
+
+barchart(itemcat~fc, fc_shop_prophet, auto.key=T)
+
+fc_shop_prophet$fc[fc_shop_prophet$itemcat =='Delivery of goods'] <- 11 #c4_df_master %>% filter(itemcat_lvl1 =='Delivery of goods') %>% group_by(date) %>% tally(item_cnt_day) %>% summary()
+
+
+# Step II - Calculate proportions of itemcat for each shop ----------------
+
+itemcat_sales_per_shopid <- fc_shop_prophet %>%
+  rename(fc_itemcat_per_shop = fc)
+  # group_by(shop_id) %>%
+  # mutate(total_sales = sum(fc)) %>%
+  # ungroup() %>%
+  # mutate(sales_prop = fc / total_sales)
+itemcat_sales_per_shopid
+
+# Step III - Proportions of item_id within each item_cat for each  --------
+
+# item_pc_sales_per_shop_over_6_months <-
+item_prop_per_shop_over_past_months <- c4_df_master %>%
+  filter(month %in% c(5,6,7,8,9,10), year==2015) %>%
+  select(shop_id, itemcat_lvl1, item_id, item_cnt_day) %>%
+  group_by(shop_id, itemcat_lvl1, item_id) %>%
+  summarize(sales_shopcatitem = sum(item_cnt_day)) %>%
+  group_by(shop_id, itemcat_lvl1) %>%
+  mutate(sales_shopcat = sum(sales_shopcatitem),
+         item_prop_per_cat_per_shop = sales_shopcatitem/sales_shopcat) %>%
+  ungroup()
+
+
+# Step IV - Estimate item_id sales for Nov --------------------------------
+
+c4_final_itemlevel_forecast <- item_prop_per_shop_over_past_months %>%
+  left_join(itemcat_sales_per_shopid, by = c('shop_id' = 'shop_id', 'itemcat_lvl1' = 'itemcat')) %>%
+  mutate(final_itemlevel_forecast = item_prop_per_cat_per_shop * fc_itemcat_per_shop,
+         final_itemlevel_forecast = ifelse(final_itemlevel_forecast<0,0,final_itemlevel_forecast))
+
+cache('c4_final_itemlevel_forecast')
+
+# Step V - Join to kaggle_test data ---------------------------------------
+
+to_join <- c4_final_itemlevel_forecast %>%
+  transmute(shop_id = as.numeric(str_extract(shop_id,'[0-9].*')),
+            item_id = as.numeric(str_extract(item_id,'[0-9].*')),
+            item_cnt_month = final_itemlevel_forecast)
+
+c4_testout <- kaggle_test %>%
+  left_join(to_join)
+
+c4_testout
+
+
+# Step VI - Clean up the NA values ----------------------------------------
+
+## How many NAs?
+map_int(c4_testout, ~sum(is.na(.x)))
+
+average_item_sales_per_month <- c4_df_master %>% filter(month != 12) %>% group_by(item_id, month) %>%
+  summarize(total_item_sales_by_month = sum(item_cnt_day, na.rm = T)) %>%
+  group_by(item_id) %>%
+  summarise(no_of_months = n(),
+            total_item_sales = sum(total_item_sales_by_month)) %>%
+  transmute(item_id = as.numeric(str_extract(item_id,'[0-9].*')),
+            average_item_sales_per_month = total_item_sales / no_of_months,
+            average_item_sales_per_month_per_shop = average_item_sales_per_month / length(unique(df_master$shop_id))) %>%
+  select(-average_item_sales_per_month)
+
+c4_testout <- c4_testout %>%
+  left_join(average_item_sales_per_month) %>%
+  mutate(item_cnt_month=ifelse(is.na(item_cnt_month), average_item_sales_per_month_per_shop, item_cnt_month)) %>%
+  select(-average_item_sales_per_month_per_shop)
+c4_testout
+
+map_int(c4_testout, ~sum(is.na(.x)))
+
+# What are the remaining NA items?
+unfound_item_id <- c4_testout %>% filter(is.na(item_cnt_month)) %>% distinct(item_id) %>% pull(item_id)
+length(unfound_item_id)
+# Do they even exist in df_master?
+table(unfound_item_id %in% as.numeric(str_extract(c4_df_master$item_id,'[0-9].*')))
+
+# Only 7 are found in the master! (Probably in the month of December)
+# How should I tackle these 'seen-for-the-first-time' item_ids?
+# Perhaps I can use the item_category_id, or just set them to zero.
+# I'm setting them to zero :)
+c4_testout$item_cnt_month[is.na(c4_testout$item_cnt_month)] <- 0
+c4_testout$item_cnt_month[c4_testout$item_cnt_month>20] <- 20
+
+c4_testout %>%
+  select(id = ID, item_cnt_month) %>%
+  write_csv(path = 'logs/c4_testout.csv',col_names = T)
+cache('c4_testout')
