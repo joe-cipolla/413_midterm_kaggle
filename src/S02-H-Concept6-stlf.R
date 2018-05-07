@@ -138,3 +138,4 @@ c6_weekly_testout %>%
   select(id, item_cnt_month) %>%
   write_csv(path = 'logs/c6_weekly_testout.csv',col_names = T)
 cache('c6_weekly_testout')
+# kaggle score 1.25253

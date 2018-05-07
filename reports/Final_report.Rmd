@@ -1,0 +1,76 @@
+---
+title             : "Mid Term Report"
+shorttitle        : "Predict 413"
+
+author: 
+  - name          : "Rahul Sangole"
+    affiliation   : "1"
+    corresponding : no    # Define only one corresponding author
+    address       : "Columbus, IN"
+    email         : "rsangole@u.northwestern.edu"
+
+
+affiliation:
+  - id            : "1"
+    institution   : "Northwestern University"
+
+author_note: |
+  
+  
+abstract: |
+  This reports the work done for the Predict 413 Section 55 Midterm assignment, Summer 2018.
+  
+keywords          : ""
+wordcount         : ""
+
+bibliography      : ["r-references.bib"]
+
+figsintext        : no
+figurelist        : yes
+tablelist         : no
+footnotelist      : no
+lineno            : no
+mask              : no
+
+class             : "man"
+output            : papaja::apa6_pdf
+---
+
+```{r load_packages, include = FALSE}
+library("papaja")
+```
+
+```{r analysis_preferences}
+# Seed for random number generation
+set.seed(42)
+```
+
+# Overview of Methodology Used
+
+The input data consists of four files, detailing information about the shops, items, item categories and the daily sales information over Jan 2013 to Oct 2015. The textual data is in Russian, which is converted to English first. After data preparation activities, extensive Exploratory Data Analysis (EDA) is performed on the data. This involved univariate numerical and graphical summaries, multivariate graphical and numerical summaries, and unsupervised time series clustering. The EDA results in insights which feed in to the data preparation 
+
+# Data Preparation
+
+# Exploratory Data Analysis
+
+# Modeling Approach
+
+# Results Summary
+
+# Final Remarks
+
+# R Packages Used
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
