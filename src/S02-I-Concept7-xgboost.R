@@ -51,35 +51,45 @@ loclvl1_clusters
 
 
 table1 <- c4_df_master %>%
-  group_by(date, shop_id, item_id) %>%
+  group_by(date_block_num, item_category_id, shop_id) %>%
   summarise(daily_item_sales = sum(item_cnt_day)) %>%
   ungroup()
-table2 <- c4_df_master %>%
-  distinct(date,date_block_num) %>% timetk::tk_augment_timeseries_signature()
+table2 <- table1 %>% distinct(date_block_num) %>%
+  mutate(date = ymd('2013-01-01'),
+         date = date + as.period(date_block_num,'month')) %>%
+  timetk::tk_augment_timeseries_signature()
 table3 <- c4_df_master %>%
   distinct(shop_id,loc_lvl1,loc_lvl2,shop_center_lgl,shop_cluster_id,sec_lgl,tc_lgl,trc_lgl,trk_lgl)
 table4 <- c4_df_master %>%
   distinct(item_id, item_category_id, itemcat_lvl1, itemcat_lvl2)
-
-#
-# intermediate_result <- table1 %>% filter(shop_id=='S10') %>% dcast(date~item_id,fill = 0)
 
 c7_df_master <- table1 %>%
   left_join(table2) %>%
   left_join(table3) %>%
   left_join(table4)
 
-c7_df_master %>%
-  select(-date,-date_block_num,-index.num,-diff,-year.iso,-month.xts,-hour,-minute,-second,-hour12,-am.pm,-wday.xts,-wday)
+c7_df_master <- c7_df_master %>%
+  select(-date_block_num,-index.num,-diff,-year.iso,-month.xts,-hour,-minute,
+         -second,-hour12,-am.pm,-wday.xts,-wday) %>%
+  select(-item_id)
 
+# c7_df_mm <- model.matrix(data = c7_df_master, daily_item_sales~.-1)
 
 total_interval <- interval(min(c7_df_master$date), max(c7_df_master$date))
 train_interval <- interval(min(c7_df_master$date), max(c7_df_master$date)) * .85
 
-c7_df_train <- c7_df_master %>% filter(between(date, date(int_start(train_interval)), date(int_end(train_interval))))
-c7_df_test  <- c7_df_master %>% filter(!between(date, date(int_start(train_interval)), date(int_end(train_interval))))
+c7_df_train <- c7_df_master %>%
+  filter(between(date, date(int_start(train_interval)), date(int_end(train_interval))))
+c7_df_test  <- c7_df_master %>%
+  filter(!between(date, date(int_start(train_interval)), date(int_end(train_interval))))
 
 c7_df_train
 
-xgboost(c7_df_train,
-        )
+cl<-makeCluster(30)
+registerDoParallel(cl)
+
+mm <- model.matrix(daily_item_sales~., c7_df_train)
+
+mm_xgb <- xgboost::xgb.DMatrix(mm)
+
+xgbFit <- xgboost(mm_xgb,nrounds = 1000L)
