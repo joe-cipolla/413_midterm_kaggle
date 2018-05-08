@@ -88,14 +88,14 @@ df_master %>%
 c3_tr <-
   df_master %>% select(date, yw, shop_id, item_cnt_day, is_december) %>%
   group_by(yw, shop_id) %>%
-  summarize(total_sales = sum(item_cnt_day),
+  dplyr::summarize(total_sales = sum(item_cnt_day),
             is_december = sum(is_december)>0) %>%
   ungroup() %>%
   separate(yw, sep = '-', into = c('yr','wk'), remove = F) %>%
   mutate(
     # wk48 = as.numeric(wk == '48'),
     # wk49 = as.numeric(wk == '49'),
-    # wk50 = as.numeric(wk == '50'),
+    wk39 = as.numeric(wk == '39'),
     wk51 = as.numeric(wk == '51'),
     wk52 = as.numeric(wk == '52'),
     wk53 = as.numeric(wk == '53'),
@@ -130,7 +130,7 @@ for(i in seq_along(unique_shops)) {
                    frequency = 52)
   fit <-
     tr_data_ts %>% auto.arima(stepwise = F,
-                              xreg = as.matrix(tr_data[, 7:10]),
+                              xreg = as.matrix(tr_data[, 7:11]),
                               seasonal = T)
   fit %>% summary
   xr <-
@@ -159,7 +159,7 @@ item_pc_sales_per_shop_over_6_months <- df_master %>%
   filter(month %in% c(5,6,7,8,9,10), year==2015) %>%
   select(shop_id, item_id, item_cnt_day) %>%
   group_by(shop_id, item_id) %>%
-  summarize(total_itemsales_per_shop = sum(item_cnt_day)) %>%
+  dplyr::summarize(total_itemsales_per_shop = sum(item_cnt_day)) %>%
   ungroup() %>%
   group_by(shop_id) %>%
   mutate(total_sales_per_shop = sum(total_itemsales_per_shop)) %>%
@@ -182,9 +182,9 @@ c3_weekly_testout
 # Removing the month of Dec since it'll inflate the values
 
 average_item_sales_per_month <- df_master %>% filter(month != 12) %>% group_by(item_id, month) %>%
-  summarize(total_item_sales_by_month = sum(item_cnt_day, na.rm = T)) %>%
+  dplyr::summarize(total_item_sales_by_month = sum(item_cnt_day, na.rm = T)) %>%
   group_by(item_id) %>%
-  summarise(no_of_months = n(),
+  dplyr::summarise(no_of_months = n(),
             total_item_sales = sum(total_item_sales_by_month)) %>%
   transmute(item_id = as.numeric(str_extract(item_id,'[0-9].*')),
             average_item_sales_per_month = total_item_sales / no_of_months,

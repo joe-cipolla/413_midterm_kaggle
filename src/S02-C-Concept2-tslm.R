@@ -2,7 +2,7 @@
 tslm_tr <-
   df_master %>% select(date, ym, shop_id, item_id, item_cnt_day) %>%
   group_by(ym, shop_id, item_id) %>%
-  summarize(total_sales = sum(item_cnt_day)) %>%
+  dplyr::summarize(total_sales = sum(item_cnt_day)) %>%
   ungroup()
 tslm_tr
 

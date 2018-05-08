@@ -1,0 +1,1 @@
+﻿Concept,Model Type,Aggregation,Kaggle ScoreC1,Seasonal Naïve,Monthly,3.77C2a,Time Series Linear Model,Weekly,3.94C2b,Time Series Linear Model,Monthly,4.03C3a,ARIMA,Weekly,1.21C3b,ARIMA,Monthly,4.04C4,Prophet,Daily,1.38C5,TBATS,Weekly,1.24C6,STLF with Auto-BoxCox,Weekly,1.25C7,Ensemble,Weekly,1.24
