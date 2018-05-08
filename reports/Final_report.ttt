@@ -1,0 +1,64 @@
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+\caption{\label{tab:unnamed-chunk-1}Sample Item Categories}
+\centering
+\resizebox{\linewidth}{!}{\begin{tabular}[t]{l|l|l|l}
+\hline
+item\_category\_name & itemcat\_lvl1 & itemcat\_lvl2 & item\_category\_id\\
+\hline
+Elements of a food & Elements of a food & NoLvl2 & 83\\
+\hline
+Books - Comics, manga & Books & Comics, manga & 47\\
+\hline
+Books - Postcards & Books & Postcards & 50\\
+\hline
+Books - Fiction & Books & Fiction & 53\\
+\hline
+Payment cards (Movies, Music, Games) & Payment cards (Movies, Music, Games) & NoLvl2 & 36\\
+\hline
+\end{tabular}}
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+\caption{\label{tab:unnamed-chunk-1}Sample Items}
+\centering
+\begin{tabular}[t]{lll}
+\toprule
+item\_name & item\_id & item\_category\_id\\
+\midrule
+4:44 LAST DAY ON EARTH & 1073 & 40\\
+Figurine World of Warcraft Series 6 Goblin Tinker Gibzz Sparklighter 7 \&quot; & 20802 & 72\\
+The Barboskins. Some houses [PC, Jewel, Russian version] & 8669 & 40\\
+SPLIN 25 frame LP & 19217 & 40\\
+Fairies. Crisis of faith [PC, Jewel, rus. subtitles] & 20235 & 40\\
+\bottomrule
+\end{tabular}
+\end{table*}
+\efloatseparator
+ 
+\begin{table*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+\caption{\label{tab:unnamed-chunk-1}Sample Shops}
+\centering
+\begin{tabular}[t]{lll}
+\toprule
+loc\_lvl1 & loc\_lvl2 & shop\_id\\
+\midrule
+Omsk & Shopping Center Mega & 38\\
+Ufa & TC Family 2 & 53\\
+Volzhsky & shopping center Volga Mall & 4\\
+Yakutsk & Ordzhonikidze, 56 francs & 0\\
+Moscow & MTRTS Afi Moll & 22\\
+\bottomrule
+\end{tabular}
+\end{table*}
+\efloatseparator
+ 

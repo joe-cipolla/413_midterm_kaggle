@@ -1,4 +1,4 @@
-\documentclass[man]{apa6}
+\documentclass[floatsintext,man]{apa6}
 
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
@@ -39,12 +39,6 @@
   {\begin{landscape}\begin{center}\begin{ThreePartTable}}
   {\end{ThreePartTable}\end{center}\end{landscape}}
 
-  \usepackage{ifthen} % Only add declarations when endfloat package is loaded
-  \ifthenelse{\equal{\string man}{\string man}}{%
-   \DeclareDelayedFloatFlavor{ThreePartTable}{table} % Make endfloat play with longtable
-   % \DeclareDelayedFloatFlavor{ltable}{table} % Make endfloat play with lscape
-   \DeclareDelayedFloatFlavor{lltable}{table} % Make endfloat play with lscape & longtable
-  }{}%
 
 
 
@@ -130,6 +124,7 @@ assignment, Summer 2018.}
 
 
 
+  \raggedbottom
 
 \usepackage{amsthm}
 \newtheorem{theorem}{Theorem}[section]
@@ -153,52 +148,223 @@ assignment, Summer 2018.}
 
 
 
-\hypertarget{methods}{%
-\section{Methods}\label{methods}}
+\section{Overview of Methodology
+Used}\label{overview-of-methodology-used}
 
-We report how we determined our sample size, all data exclusions (if
-any), all manipulations, and all measures in the study.
+The input data consists of four files, detailing information about the
+shops, items, item categories and the daily sales information over Jan
+2013 to Oct 2015. The textual data is in Russian, which is converted to
+English first. After data preparation activities, extensive Exploratory
+Data Analysis (EDA) is performed on the data. This involved univariate
+numerical and graphical summaries, multivariate graphical and numerical
+summaries, and unsupervised time series clustering. The EDA results in
+insights which feed in to the data preparation step, feature engineering
+step as well as modeling and post processing steps. A total of 8 models
+are built including one ensemble model. All the models follow a top-down
+approach as described later. Some standard model evaluation metrics are
+used during the model building process, though the final model selected
+is dependent on the Kaggle score.
 
-\hypertarget{participants}{%
-\subsection{Participants}\label{participants}}
+\section{Data Preparation \& Exploratory Data
+Analysis}\label{data-preparation-exploratory-data-analysis}
 
-\hypertarget{material}{%
-\subsection{Material}\label{material}}
+\subsection{Translation}\label{translation}
 
-\hypertarget{procedure}{%
-\subsection{Procedure}\label{procedure}}
+The text fields of the input dataset are in Russian. The first step is
+to convert these fields into English. This is performed passing the
+Russian text to a Google Translate API {[}**{]} via an R script running
+on an Amazon Web Services RStudio server. Since a free version of the
+Translate API is used, the translation activity runs at a speed of
+\textasciitilde{}1 translation per second resulting in an end-to-end
+runtime of \textasciitilde{}3 hours. Post translation, the shop meta
+data, item category metadata and item level metadata becomes readable
+and allows for feature engineering. Table 1 shows a sample of
+\texttt{items} translated into English.
 
-\hypertarget{data-analysis}{%
-\subsection{Data analysis}\label{data-analysis}}
+\begin{table}[H]
 
-We used R (Version 3.4.3; R Core Team, 2017) and the R-package
-\emph{papaja} (Version 0.1.0.9709; Aust \& Barth, 2018) for all our
-analyses.
+\caption{\label{tab:unnamed-chunk-1}Sample Items}
+\centering
+\resizebox{\linewidth}{!}{\begin{tabular}[t]{lll}
+\toprule
+item\_name & item\_id & item\_category\_id\\
+\midrule
+Risen [PC, Digital Version] & 6146 & 21\\
+* LINE OF DEATH D & 11 & 40\\
+OTHER WORLD (region) & 11319 & 62\\
+1C: Audiobooks. Mandelstam Osip. Egyptian Brand (Jewel) & 311 & 45\\
+ARMSTRONG LOUIS Ambassador Of Jazz Box 10CD + Book (box) & 1433 & 31\\
+\bottomrule
+\end{tabular}}
+\end{table}
 
-\hypertarget{results}{%
-\section{Results}\label{results}}
+\subsection{Feature Engineering}\label{feature-engineering}
 
-\hypertarget{discussion}{%
-\section{Discussion}\label{discussion}}
+\subsubsection{Categorical Predictors}\label{categorical-predictors}
+
+The \texttt{item\ category} can be split into two levels of information,
+as shown in table 2. \texttt{itemcat\_lvl1} is a higher level
+categorization consisting of 21 different levels \emph{(Cinema, Games,
+PC Games, Music, Gifts, Movies, Accessories, Books, Programs, Payment
+Cards, Game Consoles, Office, Elements of a food, Clean media (piece),
+Delivery of goods, Tickets (figure), Official, Clean carriers (spire),
+Android games, MAC Games, PC)}, while \texttt{itemcat\_lvl2} is a lower
+level categorization consisting of 62 different levels. A sample is
+shown in table 2.
+
+\begin{table}[H]
+
+\caption{\label{tab:unnamed-chunk-2}Sample Item Categories}
+\centering
+\resizebox{\linewidth}{!}{\begin{tabular}[t]{llll}
+\toprule
+item\_category\_name & itemcat\_lvl1 & itemcat\_lvl2 & item\_category\_id\\
+\midrule
+Books - Artbook, encyclopedia & Books & Artbook, encyclopedia & 42\\
+Games - Accessories for games & Games & Accessories for games & 25\\
+Payment Cards - Windows (Digital) & Payment Cards & Windows (Digital) & 35\\
+Music - CD of branded production & Music & CD of branded production & 56\\
+Accessories - XBOX 360 & Accessories & XBOX 360 & 6\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+The \texttt{shops} table consists of some location information about the
+shops. This is split into two categorical predictors as well.
+\texttt{loc\_lvl} is a higher level categorization consisting of 32
+different levels, while \texttt{loc\_lvl1} is a deeper categorization
+consisting of 56 levels. A sample is shown in table 3.
+
+\begin{table}[H]
+
+\caption{\label{tab:unnamed-chunk-3}Sample Shops}
+\centering
+\fontsize{11}{13}\selectfont
+\begin{tabular}[t]{lll}
+\toprule
+loc\_lvl1 & loc\_lvl2 & shop\_id\\
+\midrule
+Moscow & TC Perlovsky & 30\\
+Krasnoyarsk & Shopping center June & 18\\
+Moscow & TC Budenovskiy (pav.K7) & 24\\
+RostovNaDonu & TRC Megacenter Horizon & 39\\
+Volzhsky & shopping center Volga Mall & 4\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Calendar Related
+Predictors}\label{calendar-related-predictors}
+
+Temporal predictors are appended to the dataset, viz.,
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \texttt{year}, \texttt{month}, \texttt{week} describing the year,
+  month and week of the observation
+\item
+  \texttt{weekend} is a binary 0/1 variable to account for increased
+  sales over a weekend (if any)
+\item
+  \texttt{ym}, year-month combination
+\item
+  \texttt{yw}, year-week combination
+\item
+  \texttt{is\_december}, is a binary 0/1 variable to account for
+  increased Christmas / New Year sales (if any)
+\end{enumerate}
+
+Russian holiday schedules are downloaded for the years 2013, 2014 and
+2015 from \enquote{Holidays in Russia,
+'\url{https://www.timeanddate.com/holidays/russia/2013\#!hol=9}}. These
+are filtered to \emph{Official and Non-Working Days} are joined to the
+original data.
+
+\begin{verbatim}
+## Warning: package 'bindrcpp' was built under R version 3.4.4
+\end{verbatim}
+
+\begin{table}[H]
+
+\caption{\label{tab:unnamed-chunk-4}2013 Russian Holidays}
+\centering
+\begin{tabular}[t]{lll}
+\toprule
+date & holiday\_name & holiday\_type\\
+\midrule
+2013-01-01 & New Year's Day & National holiday\\
+2013-01-02 & New Year Holiday Week & National holiday\\
+2013-01-03 & New Year Holiday Week & National holiday\\
+2013-01-04 & New Year Holiday Week & National holiday\\
+2013-01-07 & Orthodox Christmas Day & National holiday, Orthodox\\
+\addlinespace
+2013-01-08 & New Year Holiday Week & National holiday\\
+2013-02-23 & Defender of the Fatherland Day & National holiday\\
+2013-03-08 & International Women's Day & National holiday\\
+2013-05-01 & Spring and Labor Day & National holiday\\
+2013-05-02 & Spring and Labor Day Holiday & National holiday\\
+\addlinespace
+2013-05-03 & Spring and Labor Day Holiday & National holiday\\
+2013-05-09 & Victory Day & National holiday\\
+2013-05-10 & Defender of the Fatherland Day holiday & National holiday\\
+2013-05-10 & Victory Day Holiday & National holiday\\
+2013-06-12 & Russia Day & National holiday\\
+\addlinespace
+2013-09-01 & Day of Knowledge & De facto holiday\\
+2013-11-04 & Unity Day & National holiday\\
+2013-12-30 & New Year Holiday Week & De facto holiday\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Exploration}\label{data-exploration}
+
+\subsubsection{Time Series Exploration}\label{time-series-exploration}
+
+\subsubsection{t-SNE}\label{t-sne}
+
+\subsubsection{Time Series Clustering}\label{time-series-clustering}
+
+\subsubsection{Oddities}\label{oddities}
+
+\subsection{Data Cleansing}\label{data-cleansing}
+
+removing -ve counts closed shops spikey stuff
+
+\section{Modeling Details}\label{modeling-details}
+
+\subsection{High level view of
+approaches}\label{high-level-view-of-approaches}
+
+\subsection{Detailed Model List}\label{detailed-model-list}
+
+\subsection{Code Details}\label{code-details}
+
+\section{Results Summary}\label{results-summary}
+
+\subsection{Performance Evaluation}\label{performance-evaluation}
+
+\section{Challenges}\label{challenges}
 
 \newpage
 
-\hypertarget{references}{%
-\section{References}\label{references}}
+\section{R Packages Used}\label{r-packages-used}
+
+\newpage
+
+\section{References}\label{references}
+
+\begin{verbatim}
+## Warning in readLines(file): incomplete final line found on 'r-
+## references.bib'
+\end{verbatim}
 
 \begingroup
-\setlength{\parindent}{-0.5in}
-\setlength{\leftskip}{0.5in}
+\setlength{\parindent}{-0.5in} \setlength{\leftskip}{0.5in}
 
 \hypertarget{refs}{}
-\leavevmode\hypertarget{ref-R-papaja}{}%
-Aust, F., \& Barth, M. (2018). \emph{papaja: Create APA manuscripts with
-R Markdown}. Retrieved from \url{https://github.com/crsh/papaja}
-
-\leavevmode\hypertarget{ref-R-base}{}%
-R Core Team. (2017). \emph{R: A language and environment for statistical
-computing}. Vienna, Austria: R Foundation for Statistical Computing.
-Retrieved from \url{https://www.R-project.org/}
 
 \endgroup
 

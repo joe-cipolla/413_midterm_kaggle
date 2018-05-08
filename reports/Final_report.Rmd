@@ -25,7 +25,7 @@ wordcount         : ""
 
 bibliography      : ["r-references.bib"]
 
-figsintext        : no
+figsintext        : yes
 figurelist        : yes
 tablelist         : no
 footnotelist      : no
@@ -34,30 +34,104 @@ mask              : no
 
 class             : "man"
 output            : papaja::apa6_pdf
+
+header-includes:
+  - \raggedbottom
 ---
 
 ```{r load_packages, include = FALSE}
 library("papaja")
-```
-
-```{r analysis_preferences}
-# Seed for random number generation
-set.seed(42)
+library('tidyverse')
+library('knitr')
+library('kableExtra')
+library('lubridate')
+options(knitr.table.format = "latex")
+load('../cache/not_loaded/item.categories.RData')
+load('../cache/not_loaded/items.RData')
+load('../cache/not_loaded/shops.RData')
+load('../cache/russian_holidays.RData')
 ```
 
 # Overview of Methodology Used
 
-The input data consists of four files, detailing information about the shops, items, item categories and the daily sales information over Jan 2013 to Oct 2015. The textual data is in Russian, which is converted to English first. After data preparation activities, extensive Exploratory Data Analysis (EDA) is performed on the data. This involved univariate numerical and graphical summaries, multivariate graphical and numerical summaries, and unsupervised time series clustering. The EDA results in insights which feed in to the data preparation 
+The input data consists of four files, detailing information about the shops, items, item categories and the daily sales information over Jan 2013 to Oct 2015. The textual data is in Russian, which is converted to English first. After data preparation activities, extensive Exploratory Data Analysis (EDA) is performed on the data. This involved univariate numerical and graphical summaries, multivariate graphical and numerical summaries, and unsupervised time series clustering. The EDA results in insights which feed in to the data preparation step, feature engineering step as well as modeling and post processing steps. A total of 8 models are built including one ensemble model. All the models follow a top-down approach as described later. Some standard model evaluation metrics are used during the model building process, though the final model selected is dependent on the Kaggle score.
 
-# Data Preparation
+# Data Preparation & Exploratory Data Analysis
 
-# Exploratory Data Analysis
+## Translation
 
-# Modeling Approach
+The text fields of the input dataset are in Russian. The first step is to convert these fields into English. This is performed passing the Russian text to a Google Translate API [**] via an R script running on an Amazon Web Services RStudio server. Since a free version of the Translate API is used, the translation activity runs at a speed of ~1 translation per second resulting in an end-to-end runtime of ~3 hours. Post translation, the shop meta data, item category metadata and item level metadata becomes readable and allows for feature engineering. Table 1 shows a sample of `items` translated into English.
+
+```{r}
+set.seed(11)
+items %>% sample_n(5) %>% kable(caption='Sample Items', booktabs = T) %>% kable_styling(latex_options = c('scale_down','HOLD_position'))
+```
+
+## Feature Engineering
+
+### Categorical Predictors
+
+The `item category` can be split into two levels of information, as shown in table 2. `itemcat_lvl1` is a higher level categorization consisting of 21 different levels _(Cinema, Games, PC Games, Music, Gifts, Movies, Accessories, Books, Programs, Payment Cards, Game Consoles, Office, Elements of a food, Clean media (piece), Delivery of goods, Tickets (figure), Official, Clean carriers (spire), Android games, MAC Games, PC)_, while `itemcat_lvl2` is a lower level categorization consisting of 62 different levels. A sample is shown in table 2.
+
+```{r}
+set.seed(10)
+item.categories %>% sample_n(5) %>% kable(caption='Sample Item Categories', booktabs=T) %>% kable_styling(latex_options = c('scale_down','HOLD_position'))
+```
+
+The `shops` table consists of some location information about the shops. This is split into two categorical predictors as well. `loc_lvl` is a higher level categorization consisting of 32 different levels, while `loc_lvl1` is a deeper categorization consisting of 56 levels. A sample is shown in table 3.
+
+```{r}
+set.seed(10)
+shops %>% sample_n(5) %>% kable(caption='Sample Shops', booktabs = T) %>% kable_styling(latex_options = c('HOLD_position'),font_size = 11)
+```
+
+### Calendar Related Predictors
+
+Temporal predictors are appended to the dataset, viz.,
+
+1. `year`, `month`, `week` describing the year, month and week of the observation
+1. `weekend` is a binary 0/1 variable to account for increased sales over a weekend (if any)
+1. `ym`, year-month combination
+1. `yw`, year-week combination
+1. `is_december`, is a binary 0/1 variable to account for increased Christmas / New Year sales (if any)
+
+Russian holiday schedules are downloaded for the years 2013, 2014 and 2015 from 'Holidays in Russia, https://www.timeanddate.com/holidays/russia/2013#!hol=9.' These are filtered to _Official and Non-Working Days_ are joined to the original data. Table 4 shows the 2013 holidays observed in Russia.
+
+```{r}
+russian_holidays %>% filter(date < ymd('20131231')) %>% kable(caption='2013 Russian Holidays', booktabs = T) %>% kable_styling(latex_options = c('HOLD_position'),font_size = 10)
+```
+
+## Data Exploration
+
+### Time Series Exploration
+
+### t-SNE
+
+### Time Series Clustering
+
+### Oddities
+
+## Data Cleansing
+
+removing -ve counts
+closed shops
+spikey stuff
+
+# Modeling Details
+
+## High level view of approaches
+
+## Detailed Model List
+
+## Code Details
 
 # Results Summary
 
-# Final Remarks
+## Performance Evaluation
+
+# Challenges
+
+\newpage
 
 # R Packages Used
 
